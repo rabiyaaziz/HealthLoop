@@ -25,7 +25,7 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{background:radial-gradient(ellipse 85% 45% at 50% -8%,rgba(76,95,232,.30),transparent 62%),radial-gradient(ellipse 55% 35% at 90% 102%,rgba(255,196,128,.07),transparent 70%),linear-gradient(180deg,#070A1E,#0A0E2C 55%,#060818);background-color:var(--bg);background-attachment:fixed;color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0}
+body{background:radial-gradient(ellipse 85% 45% at 50% -8%,rgba(76,95,232,.30),transparent 62%),radial-gradient(ellipse 55% 35% at 90% 102%,rgba(255,196,128,.07),transparent 70%),linear-gradient(180deg,#070A1E,#0A0E2C 55%,#060818);background-color:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0}
 .wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 h1,h2,h3{font-family:var(--f-display);font-weight:600;letter-spacing:.01em;margin:0;text-wrap:balance}
 h2{font-size:1.35rem}
@@ -104,13 +104,13 @@ section.view{display:grid;gap:16px}
 
 .how a{color:var(--accent)}
 .vital .what{font-size:.82rem;color:var(--muted);margin-top:-2px}
-.vital .state{font-size:.9rem;font-weight:600}
+.vital .state{font-size:.9rem;font-weight:600;min-height:1.5em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vital .state.lv0{color:var(--ink)}
 .vital .usual{font-size:.8rem;color:var(--muted)}
 .spark{width:100%;height:auto;display:block;margin-top:4px}
 .spark .band{fill:var(--accent);opacity:.12}
 .spark .ln{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-linejoin:round}
-.spark.lv1 .ln{stroke:var(--warn)} .spark.lv2 .ln{stroke:var(--crit)}
+.spark.lv1 .ln,.spark.lv1 .halo{stroke:var(--warn)} .spark.lv2 .ln,.spark.lv2 .halo{stroke:var(--crit)}
 .spark .dot{fill:var(--ink)} .spark.lv1 .dot{fill:var(--warn)} .spark.lv2 .dot{fill:var(--crit)}
 .spark .grid{stroke:var(--line);stroke-width:1}
 
@@ -235,9 +235,10 @@ textarea,.answer,.stat,.pipe .st{background:var(--sunk);border:1px solid var(--e
 /* numbers and charts glow */
 .vital .big{font-family:var(--f-display);font-weight:600;font-size:2.7rem;font-variant-numeric:lining-nums tabular-nums;text-shadow:0 0 18px var(--glow-soft)}
 .spark .band{fill:var(--accent);opacity:.10}
-.spark .ln{stroke:var(--accent);stroke-width:1.8;filter:drop-shadow(0 0 3px var(--accent))}
-.spark .dot{fill:#fff;filter:drop-shadow(0 0 4px var(--accent))}
-.spark.lv1 .ln{stroke:var(--warn);filter:drop-shadow(0 0 3px var(--warn))} .spark.lv2 .ln{stroke:var(--crit);filter:drop-shadow(0 0 3px var(--crit))}
+.spark .ln{stroke:var(--accent);stroke-width:1.8}
+.spark .halo{fill:none;stroke:var(--accent);stroke-width:6;opacity:.18;stroke-linejoin:round}
+.spark .dot{fill:#fff}
+.spark.lv1 .ln,.spark.lv1 .halo{stroke:var(--warn)} .spark.lv2 .ln,.spark.lv2 .halo{stroke:var(--crit)}
 .bars .fill{background:linear-gradient(180deg,var(--accent),var(--accent2));opacity:1;border-radius:6px 6px 2px 2px;box-shadow:0 0 14px -3px var(--accent)}
 .bars .fill.low{background:var(--warn);box-shadow:0 0 14px -3px var(--warn)} .bars .fill.vlow{background:var(--crit);box-shadow:0 0 14px -3px var(--crit)}
 .track{background:var(--sunk);border:1px solid var(--edge)}
@@ -481,11 +482,11 @@ const PLAIN={
 function plainState(k,L,lvl){            // e.g. "a little high for you"
   if(!L)return'';const S=SIG[k],z=(L.v-L.m)/L.s,bad=S.dir*z;
   const word=z>0?(k==='hrv'?'higher':'high'):(k==='hrv'?'lower':'low');
-  if(lvl===2)return(bad>0?'Much '+(z>0?'higher':'lower')+' than usual for you':'Unusual for you');
-  if(lvl===1)return(z>0?'Higher':'Lower')+' than usual. Keep an eye on it';
+  if(lvl===2)return(bad>0?'Much '+(z>0?'higher':'lower')+' than usual':'Unusual for you');
+  if(lvl===1)return(z>0?'Higher':'Lower')+' than usual. Watch it';
   if(Math.abs(z)<1)return'Normal for you';
-  if(Math.abs(z)<=2)return'A little '+word+', still in your normal range';
-  return'Just outside your normal range. HealthLoop will flag it if it lasts';
+  if(Math.abs(z)<=2)return'A little '+word+', still normal';
+  return'Briefly outside your normal range';
 }
 const SCEN={
   cardiac:{label:'Elevated resting heart rate',fx:[{k:'hr',mag:24,dur:72,ramp:6},{k:'hrv',mag:.3,dur:72,ramp:6}]},
@@ -694,7 +695,7 @@ function spark(pts,lvl){
   const up=pts.map((p,i)=>X(i)+','+Y(p.m+2*p.s)),dn=pts.map((p,i)=>X(i)+','+Y(p.m-2*p.s)).reverse();
   const ln=pts.map((p,i)=>(i?'L':'M')+X(i)+','+Y(p.v)).join('');
   const L=pts[pts.length-1];
-  return '<svg class="spark lv'+lvl+'" viewBox="0 0 '+W+' '+H+'" aria-hidden="true"><line class="grid" x1="0" x2="'+W+'" y1="'+(H-1)+'" y2="'+(H-1)+'"/><path class="band" d="M'+up.join('L')+'L'+dn.join('L')+'Z"/><path class="ln" d="'+ln+'"/><circle class="dot" cx="'+X(pts.length-1)+'" cy="'+Y(L.v)+'" r="3"/></svg>';
+  return '<svg class="spark lv'+lvl+'" viewBox="0 0 '+W+' '+H+'" aria-hidden="true"><line class="grid" x1="0" x2="'+W+'" y1="'+(H-1)+'" y2="'+(H-1)+'"/><path class="band" d="M'+up.join('L')+'L'+dn.join('L')+'Z"/><path class="halo" d="'+ln+'"/><path class="ln" d="'+ln+'"/><circle class="dot" cx="'+X(pts.length-1)+'" cy="'+Y(L.v)+'" r="3"/></svg>';
 }
 
 const MISSION_DAYS=520;   // simulated Mars round trip, the length of the Mars-500 isolation study
@@ -829,7 +830,8 @@ function afterStep(){
   }
 }
 function loop(){
-  if(!server){step(true);afterStep();const now=performance.now();if(!playing||now-lastRender>180){render();lastRender=now}return}
+  if(document.hidden)return;
+  if(!server){step(true);afterStep();const now=performance.now();if(!playing||now-lastRender>320){render();lastRender=now}return}
   if(busy)return;busy=true;
   const iv=speed>=4?250:1000;
   api('step?n='+Math.max(1,Math.round(speed*iv/1000)),{}).then(s=>{apply(s);afterStep();render()}).catch(()=>showError('Python server not responding')).finally(()=>{busy=false});
